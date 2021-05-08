@@ -10,7 +10,7 @@ dat = dat.drop(columns=['book_id','ratings_count','review_likes','like_share'])
 
 # difference between user rating and average book rating
 dat["rating_diff"] = dat["user_rating"]-dat["avg_rating"]
-dat = dat.drop(columns=['user_rating','avg_rating'])
+dat = dat.drop(columns=['avg_rating'])
 
 # flag if review contains a quotation
 dat["quote"] = dat["review_text"].str.contains("\"")
@@ -63,6 +63,8 @@ dat["tokenized_words"] = dat["tokenized_words"].apply(lambda review: [word for w
 # lemmatization
 wnl = nltk.stem.wordnet.WordNetLemmatizer()
 dat["tokenized_words"] = dat["tokenized_words"].apply(lambda review: [wnl.lemmatize(word) for word in review])
+
+data = data[["popular","user_reviews","days_since_review","user_rating","rating_diff","num_words","avg_word_len","avg_sent_len","pct_verbs","pct_nouns","pct_adj","quote","sentiment","tokenized_words"]]
 
 # save dataset
 dat.to_csv("tokenized_reviews.csv", index=False)
