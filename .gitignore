@@ -1,0 +1,7 @@
+data/
+*.pdf
+*.bin
+*.log
+*.png
+.DS_Store
+.ipynb_checkpoints/
