@@ -67,7 +67,7 @@ print(roc_auc_score(y_test, predictions))
 print(gs_rf.best_estimator_.feature_importances_)
 xgb.plot_importance(gs_rf.best_estimator_)
 plt.tight_layout()
-plt.savefig("rf_subseta.png")
+plt.savefig("rf_full_a.png")
 
 # SUBSET B
 print("\n\nRANDOM FOREST SUBSET B")
@@ -90,97 +90,4 @@ print(roc_auc_score(y_test, predictions))
 print(gs_rf.best_estimator_.feature_importances_)
 xgb.plot_importance(gs_rf.best_estimator_)
 plt.tight_layout()
-plt.savefig("rf_subsetb.png")
-
-# BAG OF WORDS
-print("\n\nRANDOM FOREST BOW")
-
-# pipeline
-bow_pipe = make_pipeline(
-    ColumnTransformer(remainder='passthrough',
-                      transformers=[('countvectorizer',
-                                     CountVectorizer(),
-                                     'tokenized_words')]),
-    xgb.XGBRegressor(objective='binary:logistic',
-                     eval_metric='error',
-                     seed=229,
-                     n_jobs=-1))
-
-# parameters to try
-parameters = {
-    'columntransformer__countvectorizer__max_features': (10000,50000),
-    'xgbregressor__n_estimators': (50,100,1000),
-    'xgbregressor__max_depth': (2,4,6),
-    'xgbregressor__learning_rate': (0.01, 0.1, 0.3)
-}
-
-# perform validation
-gs_bow_pipe = GridSearchCV(bow_pipe, 
-                           parameters, 
-                           cv=ShuffleSplit(n_splits=1, 
-                                           test_size=0.13, 
-                                           random_state=229))
-gs_bow_pipe.fit(X_train, y_train)
-print(gs_bow_pipe.cv_results_)
-print(gs_bow_pipe.best_params_)
-
-# predict
-predictions = gs_bow_pipe.predict(X_test)
-predictions = list(map(round,predictions))
-print(classification_report(y_test, predictions))
-print(confusion_matrix(y_test, predictions))
-print(roc_auc_score(y_test, predictions))
-
-# feature importance
-sorted_ind = gs_bow_pipe.best_estimator_.named_steps['xgbregressor'].feature_importances_.argsort()[::-1]
-print(np.take(gs_bow_pipe.best_estimator_.named_steps['columntransformer'].get_feature_names(),sorted_ind.tolist())[:50])
-print(np.take(gs_bow_pipe.best_estimator_.named_steps['xgbregressor'].feature_importances_,sorted_ind.tolist())[:50])
-xgb.plot_importance(gs_bow_pipe.best_estimator_.named_steps['xgbregressor'], max_num_features=50)
-plt.tight_layout()
-plt.savefig("rf_bow.png")
-
-# TF-IDF
-print("\n\nRANDOM FOREST TF-IDF")
-
-# pipeline
-tf_pipe = make_pipeline(
-    ColumnTransformer(remainder='passthrough',
-                      transformers=[('tfidfvectorizer',
-                                     TfidfVectorizer(),
-                                     'tokenized_words')]),
-    xgb.XGBRegressor(objective='binary:logistic',
-                     eval_metric='error',
-                     seed=229,
-                     n_jobs=-1))
-
-# parameters to try
-parameters = {
-    'xgbregressor__n_estimators': (50,100,1000),
-    'xgbregressor__max_depth': (2,4,6),
-    'xgbregressor__learning_rate': (0.01, 0.1, 0.3)
-}
-
-# perform validation
-gs_tf_pipe = GridSearchCV(tf_pipe, 
-                           parameters, 
-                           cv=ShuffleSplit(n_splits=1, 
-                                           test_size=0.13, 
-                                           random_state=229))
-gs_tf_pipe.fit(X_train, y_train)
-print(gs_tf_pipe.cv_results_)
-print(gs_tf_pipe.best_params_)
-
-# predict
-predictions = gs_tf_pipe.predict(X_test)
-predictions = list(map(round,predictions))
-print(classification_report(y_test, predictions))
-print(confusion_matrix(y_test, predictions))
-print(roc_auc_score(y_test, predictions))
-
-# feature importance
-sorted_ind = gs_bow_pipe.best_estimator_.named_steps['xgbregressor'].feature_importances_.argsort()[::-1]
-print(np.take(gs_bow_pipe.best_estimator_.named_steps['columntransformer'].get_feature_names(),sorted_ind.tolist())[:50])
-print(np.take(gs_bow_pipe.best_estimator_.named_steps['xgbregressor'].feature_importances_,sorted_ind.tolist())[:50])
-xgb.plot_importance(gs_bow_pipe.best_estimator_.named_steps['xgbregressor'], max_num_features=50)
-plt.tight_layout()
-plt.savefig("rf_tfidf.png")
+plt.savefig("rf_full_b.png")
