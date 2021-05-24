@@ -20,23 +20,23 @@ X_test = pd.read_pickle("data/X_test.pkl")
 y_train = pd.read_pickle("data/y_train.pkl")
 y_test = pd.read_pickle("data/y_test.pkl")
 
-# BOW
-print("NEURAL NET BOW")
+# TF-IDF
+print("NEURAL NET TF-IDF")
 
-# build bag of words
-bow = ColumnTransformer(remainder='passthrough',
-                        transformers=[('countvectorizer',
-                                       CountVectorizer(max_features=10000),
-                                       'tokenized_words')])
-X_train_bow = bow.fit_transform(X_train).toarray()
-X_test_bow = bow.transform(X_test).toarray()
+# build tfidf
+tf = ColumnTransformer(remainder='passthrough',
+                       transformers=[('tfidfvectorizer',
+                                      TfidfVectorizer(min_df=0.0001),
+                                      'tokenized_words')])
+X_train_tf = tf.fit_transform(X_train).toarray()
+X_test_tf = tf.transform(X_test).toarray()
 
 # build neural net
 mod = Sequential()
 # input layer
-mod.add(Dense(units=10013, input_dim=X_train_bow.shape[1], activation='relu'))
+mod.add(Dense(units=26115, input_dim=X_train_tf.shape[1], activation='relu'))
 # first hidden layer
-mod.add(Dense(units=6676, activation='relu'))
+mod.add(Dense(units=17411, activation='relu'))
 # output layer
 mod.add(Dense(units=1, activation='sigmoid'))
 
@@ -49,7 +49,7 @@ es = EarlyStopping(monitor='val_loss', mode='min', verbose=1, patience=20)
 mc = ModelCheckpoint('best_model.h5', monitor='val_accuracy', mode='max', verbose=1, save_best_only=True)
 
 # fit neural net
-history = mod.fit(x=X_train_bow,
+history = mod.fit(x=X_train_tf,
                   y=y_train,
                   validation_split=0.13,
                   epochs=500,
@@ -67,7 +67,7 @@ plt.title('model accuracy')
 plt.ylabel('accuracy')
 plt.xlabel('epoch')
 plt.legend(['train', 'test'], loc='upper left')
-plt.savefig("net_acc_bow")
+plt.savefig("net_acc_tf")
 # plot loss per epoch
 plt.plot(history.history['loss'])
 plt.plot(history.history['val_loss'])
@@ -75,28 +75,28 @@ plt.title('model loss')
 plt.ylabel('loss')
 plt.xlabel('epoch')
 plt.legend(['train', 'test'], loc='upper left')
-plt.savefig("net_loss_bow")
+plt.savefig("net_loss_tf")
 
 # predictions with saved weights from best validation accuracy
 mod.load_weights('best_model.h5')
-predictions = (mod.predict(X_test_bow) > 0.5).astype("int32")
+predictions = (mod.predict(X_test_tf) > 0.5).astype("int32")
 print(classification_report(y_test, predictions))
 print(confusion_matrix(y_test, predictions))
 print(roc_auc_score(y_test, predictions))
 
 # Shapley Values
-explainer = shap.DeepExplainer(mod, np.array(X_train_bow[:5000]))
-shap_values = explainer.shap_values(np.array(X_test_bow[:1000]))
+explainer = shap.DeepExplainer(mod, np.array(X_train_tf[:5000]))
+shap_values = explainer.shap_values(np.array(X_test_tf[:1000]))
 
 # plot mean absolute value
-shap_df = pd.DataFrame(shap_values[0],columns=bow.get_feature_names())
+shap_df = pd.DataFrame(shap_values[0],columns=tf.get_feature_names())
 shap_abs_mean = shap_df.abs().mean().sort_values()
 plt.figure(figsize=(8,6))
 plt.barh(shap_abs_mean.index, shap_abs_mean)
 plt.xlabel("mean |SHAP value|")
 plt.grid(False,axis='y')
 plt.tight_layout()
-plt.savefig("net_shap_ma_bow")
+plt.savefig("net_shap_ma_tf")
 
 # plot all values
 shap_df = shap_df.melt()
@@ -110,4 +110,4 @@ ax = sns.stripplot(x=shap_df[shap_df["sign"] != True]["value"],
                    color="blue")
 plt.xlabel("SHAP value")
 plt.tight_layout()
-plt.savefig("net_shap_bow")
+plt.savefig("net_shap_tf")
