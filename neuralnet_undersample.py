@@ -4,9 +4,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report, confusion_matrix, roc_auc_score
+import tensorflow.keras
 from keras.models import Sequential
 from keras.layers import Dense
 from keras.callbacks import EarlyStopping, ModelCheckpoint
+import shap
+import seaborn as sns
+sns.set_theme(style="whitegrid")
 
 # read/prep data
 dat = pd.read_csv("data/tokenized_reviews.csv")

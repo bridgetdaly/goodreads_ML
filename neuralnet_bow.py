@@ -6,31 +6,19 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report, confusion_matrix, roc_auc_score
 from sklearn.compose import ColumnTransformer
 from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
+import tensorflow.keras
 from keras.models import Sequential
 from keras.layers import Dense
 from keras.callbacks import EarlyStopping, ModelCheckpoint
+import shap
+import seaborn as sns
+sns.set_theme(style="whitegrid")
 
-# read/prep data
-dat = pd.read_csv("data/tokenized_reviews.csv")
-dat = dat.dropna()
-dat["quote"] = dat["quote"].astype(int)
-dat["tokenized_words"] = dat["tokenized_words"].apply(lambda x: x.strip("[']").replace("', '"," "))
-
-
-# 85% train / 15% test
-X_train, X_test, y_train, y_test = train_test_split(dat.drop(columns=["popular"]), 
-                                                    dat["popular"],
-                                                    test_size = 0.15,
-                                                    random_state = 229)
-
-# undersample train set
-majority_size = len(y_train[y_train==0])
-minority_size = len(y_train[y_train==1])
-majority_indices = y_train[y_train==0].index
-rng = np.random.default_rng(seed=229)
-drop_indices = rng.choice(majority_indices, majority_size-minority_size, replace=False)
-X_train = X_train.drop(drop_indices)
-y_train = y_train.drop(drop_indices)
+# read data
+X_train = pd.read_pickle("data/X_train.pkl")
+X_test = pd.read_pickle("data/X_test.pkl")
+y_train = pd.read_pickle("data/y_train.pkl")
+y_test = pd.read_pickle("data/y_test.pkl")
 
 # BOW
 print("NEURAL NET BOW")
@@ -38,7 +26,7 @@ print("NEURAL NET BOW")
 # build bag of words
 bow = ColumnTransformer(remainder='passthrough',
                         transformers=[('countvectorizer',
-                                       CountVectorizer(max_features=1000),
+                                       CountVectorizer(max_features=10000),
                                        'tokenized_words')])
 X_train_bow = bow.fit_transform(X_train).toarray()
 X_test_bow = bow.fit_transform(X_test).toarray()
@@ -95,3 +83,31 @@ predictions = (mod.predict(X_test_bow) > 0.5).astype("int32")
 print(classification_report(y_test, predictions))
 print(confusion_matrix(y_test, predictions))
 print(roc_auc_score(y_test, predictions))
+
+# Shapley Values
+explainer = shap.DeepExplainer(mod, np.array(X_train_bow[:5000]))
+shap_values = explainer.shap_values(np.array(X_test_bow[:1000]))
+
+# plot mean absolute value
+shap_df = pd.DataFrame(shap_values[0],columns=bow.get_feature_names())
+shap_abs_mean = shap_df.abs().mean().sort_values()
+plt.figure(figsize=(8,6))
+plt.barh(shap_abs_mean.index, shap_abs_mean)
+plt.xlabel("mean |SHAP value|")
+plt.grid(False,axis='y')
+plt.tight_layout()
+plt.savefig("net_shap_ma_bow")
+
+# plot all values
+shap_df = shap_df.melt()
+shap_df["sign"] = shap_df["value"] > 0
+plt.figure(figsize=(5,10))
+ax = sns.stripplot(x=shap_df[shap_df["sign"] == True]["value"],
+                   y=shap_df[shap_df["sign"] == True]["variable"],
+                   color="red")
+ax = sns.stripplot(x=shap_df[shap_df["sign"] != True]["value"],
+                   y=shap_df[shap_df["sign"] != True]["variable"],
+                   color="blue")
+plt.xlabel("SHAP value")
+plt.tight_layout()
+plt.savefig("net_shap_bow")
