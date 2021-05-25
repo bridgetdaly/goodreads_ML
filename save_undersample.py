@@ -25,7 +25,7 @@ X_train = X_train.drop(drop_indices)
 y_train = y_train.drop(drop_indices)
 
 
-X_train.to_pickle("data/X_train.pkl")
-X_test.to_pickle("data/X_test.pkl")
-y_train.to_pickle("data/y_train.pkl")
-y_test.to_pickle("data/y_test.pkl")
+X_train.to_pickle("data/X_train.pkl",protocol=3)
+X_test.to_pickle("data/X_test.pkl",protocol=3)
+y_train.to_pickle("data/y_train.pkl",protocol=3)
+y_test.to_pickle("data/y_test.pkl",protocol=3)

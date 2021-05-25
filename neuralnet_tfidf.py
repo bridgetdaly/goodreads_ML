@@ -31,6 +31,11 @@ tf = ColumnTransformer(remainder='passthrough',
 X_train_tf = tf.fit_transform(X_train).toarray()
 X_test_tf = tf.transform(X_test).toarray()
 
+X_train_tf, X_valid_tf, y_train, y_valid = train_test_split(X_train_tf,
+                                                            y_train,
+                                                            test_size = 0.13,
+                                                            random_state = 229)
+
 # build neural net
 mod = Sequential()
 # input layer
@@ -44,19 +49,38 @@ mod.compile(loss='binary_crossentropy'
             , optimizer='adam'
             , metrics=['accuracy'])
 
+# build generator (sparse too big to convert to dense all at once)
+batch_size = 1000
+epochs = 500
+steps_per_epoch = int(X_train_tf.shape[0]/batch_size)
+
+# https://stackoverflow.com/questions/37609892/keras-sparse-matrix-issue
+def batch_generator(X_train, y_train, batch_size):
+    counter=0
+    shuffle_index = np.arange(np.shape(y_train)[0])
+    np.random.shuffle(shuffle_index)
+    X =  X_train[shuffle_index, :]
+    y =  y_train.to_numpy()[shuffle_index]
+    counter = 0
+    while counter < steps_per_epoch:
+        index_batch = shuffle_index[batch_size*counter:batch_size*(counter+1)]
+        X_batch = X[index_batch,:].toarray()
+        y_batch = y[index_batch]
+        counter += 1
+        yield(X_batch,y_batch)
+
 # https://machinelearningmastery.com/how-to-stop-training-deep-neural-networks-at-the-right-time-using-early-stopping/
 es = EarlyStopping(monitor='val_loss', mode='min', verbose=1, patience=20)
 mc = ModelCheckpoint('best_model.h5', monitor='val_accuracy', mode='max', verbose=1, save_best_only=True)
 
 # fit neural net
-history = mod.fit(x=X_train_tf,
-                  y=y_train,
-                  validation_split=0.13,
+history = mod.fit(x=batch_generator(X_train_tf, y_train, batch_size),
+                  validation_data=(X_valid_tf.toarray(), y_valid),
                   epochs=500,
-                  batch_size=1000,
+                  steps_per_epoch=steps_per_epoch,
                   workers=-1,
                   use_multiprocessing=True,
-                  verbose=0,
+                  verbose=1,
                   callbacks=[es, mc])
 
 # https://machinelearningmastery.com/display-deep-learning-model-training-history-in-keras/
@@ -85,8 +109,8 @@ print(confusion_matrix(y_test, predictions))
 print(roc_auc_score(y_test, predictions))
 
 # Shapley Values
-explainer = shap.DeepExplainer(mod, np.array(X_train_tf[:5000]))
-shap_values = explainer.shap_values(np.array(X_test_tf[:1000]))
+explainer = shap.DeepExplainer(mod, X_train_tf[:5000].toarray())
+shap_values = explainer.shap_values(X_test_tf[:1000].toarray())
 
 # plot mean absolute value
 shap_df = pd.DataFrame(shap_values[0],columns=tf.get_feature_names())
