@@ -1,7 +1,6 @@
 import sys
 import pandas as pd
 import numpy as np
-import statsmodels.api as sm
 from sklearn.model_selection import train_test_split, ShuffleSplit, GridSearchCV
 from sklearn.metrics import classification_report, confusion_matrix, roc_auc_score
 from sklearn.pipeline import make_pipeline
@@ -33,40 +32,6 @@ rng = np.random.default_rng(seed=229)
 drop_indices = rng.choice(majority_indices, majority_size-minority_size, replace=False)
 X_train = X_train.drop(drop_indices)
 y_train = y_train.drop(drop_indices)
-
-# feature subsets
-subset_a = ["user_reviews","days_since_review","user_rating","rating_diff"]
-subset_b = ["user_reviews","days_since_review","user_rating","rating_diff",
-            "num_words","avg_word_len","avg_sent_len","pct_verbs",
-            "pct_nouns","pct_adj","quote","sentiment"]
-
-# SUBSET A
-print("LOGISTIC REGRESSION SUBSET A")
-
-# train
-log_reg = sm.Logit(y_train, X_train[subset_a]).fit()
-print(log_reg.summary())
-
-# predict
-predictions = log_reg.predict(X_test[subset_a])
-predictions = list(map(round,predictions))
-print(classification_report(y_test, predictions))
-print(confusion_matrix(y_test, predictions))
-print(roc_auc_score(y_test, predictions))
-
-# SUBSET B
-print("\n\nLOGISTIC REGRESSION SUBSET B")
-
-# train
-log_reg = sm.Logit(y_train, X_train[subset_b]).fit()
-print(log_reg.summary())
-
-# predict
-predictions = log_reg.predict(X_test[subset_b])
-predictions = list(map(round,predictions))
-print(classification_report(y_test, predictions))
-print(confusion_matrix(y_test, predictions))
-print(roc_auc_score(y_test, predictions))
 
 # BAG OF WORDS
 print("\n\nLOGISTIC REGRESSION BOW")

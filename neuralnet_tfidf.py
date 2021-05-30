@@ -28,8 +28,8 @@ tf = ColumnTransformer(remainder='passthrough',
                        transformers=[('tfidfvectorizer',
                                       TfidfVectorizer(min_df=0.0001),
                                       'tokenized_words')])
-X_train_tf = tf.fit_transform(X_train).toarray()
-X_test_tf = tf.transform(X_test).toarray()
+X_train_tf = tf.fit_transform(X_train)
+X_test_tf = tf.transform(X_test)
 
 X_train_tf, X_valid_tf, y_train, y_valid = train_test_split(X_train_tf,
                                                             y_train,
@@ -52,32 +52,35 @@ mod.compile(loss='binary_crossentropy'
 # build generator (sparse too big to convert to dense all at once)
 batch_size = 1000
 epochs = 500
-steps_per_epoch = int(X_train_tf.shape[0]/batch_size)
+samples_per_epoch = X_train_tf.shape[0]
+batches_per_epoch = samples_per_epoch//batch_size
 
 # https://stackoverflow.com/questions/37609892/keras-sparse-matrix-issue
-def batch_generator(X_train, y_train, batch_size):
+def batch_generator(X_train, y_train, batch_size, batches_per_epoch):
     counter=0
     shuffle_index = np.arange(np.shape(y_train)[0])
     np.random.shuffle(shuffle_index)
     X =  X_train[shuffle_index, :]
     y =  y_train.to_numpy()[shuffle_index]
-    counter = 0
-    while counter < steps_per_epoch:
+    while 1:
         index_batch = shuffle_index[batch_size*counter:batch_size*(counter+1)]
         X_batch = X[index_batch,:].toarray()
         y_batch = y[index_batch]
         counter += 1
         yield(X_batch,y_batch)
+        if (counter == batches_per_epoch):
+            np.random.shuffle(shuffle_index)
+            counter = 0
 
 # https://machinelearningmastery.com/how-to-stop-training-deep-neural-networks-at-the-right-time-using-early-stopping/
 es = EarlyStopping(monitor='val_loss', mode='min', verbose=1, patience=20)
 mc = ModelCheckpoint('best_model.h5', monitor='val_accuracy', mode='max', verbose=1, save_best_only=True)
 
 # fit neural net
-history = mod.fit(x=batch_generator(X_train_tf, y_train, batch_size),
+history = mod.fit(x=batch_generator(X_train_tf, y_train, batch_size, batches_per_epoch),
                   validation_data=(X_valid_tf.toarray(), y_valid),
                   epochs=500,
-                  steps_per_epoch=steps_per_epoch,
+                  steps_per_epoch=batches_per_epoch,
                   workers=-1,
                   use_multiprocessing=True,
                   verbose=1,
@@ -116,7 +119,7 @@ shap_values = explainer.shap_values(X_test_tf[:1000].toarray())
 shap_df = pd.DataFrame(shap_values[0],columns=tf.get_feature_names())
 shap_abs_mean = shap_df.abs().mean().sort_values()
 plt.figure(figsize=(8,6))
-plt.barh(shap_abs_mean.index, shap_abs_mean)
+plt.barh(shap_abs_mean[::-1][:25].index, shap_abs_mean[::-1][:25])
 plt.xlabel("mean |SHAP value|")
 plt.grid(False,axis='y')
 plt.tight_layout()
@@ -125,12 +128,13 @@ plt.savefig("net_shap_ma_tf")
 # plot all values
 shap_df = shap_df.melt()
 shap_df["sign"] = shap_df["value"] > 0
+shap_df_plot = shap_df[shap_df["variable"].isin(shap_abs_mean[::-1][:25].index)]
 plt.figure(figsize=(5,10))
-ax = sns.stripplot(x=shap_df[shap_df["sign"] == True]["value"],
-                   y=shap_df[shap_df["sign"] == True]["variable"],
+ax = sns.stripplot(x=shap_df_plot[shap_df_plot["sign"] == True]["value"],
+                   y=shap_df_plot[shap_df_plot["sign"] == True]["variable"],
                    color="red")
-ax = sns.stripplot(x=shap_df[shap_df["sign"] != True]["value"],
-                   y=shap_df[shap_df["sign"] != True]["variable"],
+ax = sns.stripplot(x=shap_df_plot[shap_df_plot["sign"] != True]["value"],
+                   y=shap_df_plot[shap_df_plot["sign"] != True]["variable"],
                    color="blue")
 plt.xlabel("SHAP value")
 plt.tight_layout()

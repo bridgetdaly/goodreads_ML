@@ -1,6 +1,7 @@
 import sys
 import pandas as pd
 import numpy as np
+import pickle
 import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split, ShuffleSplit, GridSearchCV
 from sklearn.metrics import classification_report, confusion_matrix, roc_auc_score
@@ -182,15 +183,17 @@ print(gs_tf_pipe.best_params_)
 
 # predict
 predictions = gs_tf_pipe.predict(X_test)
+with open("data/rf_predictions.pkl", "wb") as fp:
+    pickle.dump(predictions,fp)
 predictions = list(map(round,predictions))
 print(classification_report(y_test, predictions))
 print(confusion_matrix(y_test, predictions))
 print(roc_auc_score(y_test, predictions))
 
 # feature importance
-sorted_ind = gs_bow_pipe.best_estimator_.named_steps['xgbregressor'].feature_importances_.argsort()[::-1]
-print(np.take(gs_bow_pipe.best_estimator_.named_steps['columntransformer'].get_feature_names(),sorted_ind.tolist())[:50])
-print(np.take(gs_bow_pipe.best_estimator_.named_steps['xgbregressor'].feature_importances_,sorted_ind.tolist())[:50])
-xgb.plot_importance(gs_bow_pipe.best_estimator_.named_steps['xgbregressor'], max_num_features=50)
+sorted_ind = gs_tf_pipe.best_estimator_.named_steps['xgbregressor'].feature_importances_.argsort()[::-1]
+print(np.take(gs_tf_pipe.best_estimator_.named_steps['columntransformer'].get_feature_names(),sorted_ind.tolist())[:50])
+print(np.take(gs_tf_pipe.best_estimator_.named_steps['xgbregressor'].feature_importances_,sorted_ind.tolist())[:50])
+xgb.plot_importance(gs_tf_pipe.best_estimator_.named_steps['xgbregressor'], max_num_features=50)
 plt.tight_layout()
 plt.savefig("rf_tfidf.png")
