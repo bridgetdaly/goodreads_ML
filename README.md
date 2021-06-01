@@ -15,4 +15,4 @@ Final project for Machine Learning (STATS229) Stanford Spring 2021 with goal of 
 * save_undersample.py: save under sample train and test sets for smaller upload to GCP for next two scripts
 * neuralnet_bow.py: neural net under sample on feature subset c
 * neuralnet_tfidf.py: neural net under sample on feature subset d
-* explore_predictions.ipynb: explore predictions from logistic subset b and random forest subset d
+* explore_predictions.ipynb: explore predictions from logistic subset b and gb subset d
