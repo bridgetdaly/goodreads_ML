@@ -8,8 +8,8 @@ Final project for Machine Learning (STATS229) Stanford Spring 2021 with goal of 
 * features.py: feature engineering
 * logistic_ab.py: logistic regression full sample and under sample on feature subsets a and b
 * logistic_cd.py: logistic regression under sample on feature subsets c and d
-* forest.py: random forest (XGBoost) full sample on feature subsets a and b
-* forest_under.py: random forest (XGBoost) under sample on feature subsets a, b, c, and d
+* gb.py: gradient boosting (XGBoost) full sample on feature subsets a and b
+* gb_under.py: gradient boosting (XGBoost) under sample on feature subsets a, b, c, and d
 * neuralnet.py: neural net full sample on feature subsets a and b
 * neuralnet_undersample.py: neural net under sample on feature subsets c and d
 * save_undersample.py: save under sample train and test sets for smaller upload to GCP for next two scripts
